@@ -32,36 +32,63 @@
 pub use self::private::reinstrument;
 use crate::{
 	gas::{GasMeter, Token},
+	storage::meter::{Diff, NestedMeter as StorageMeter},
 	wasm::{prepare, PrefabWasmModule},
 	weights::WeightInfo,
 	CodeHash, CodeStorage, Config, Error, Event, Pallet as Contracts, PristineCode, Schedule,
 	Weight,
 };
-use frame_support::dispatch::DispatchError;
+use frame_support::{
+	dispatch::{DispatchError, DispatchResult},
+	pallet_prelude::Encode,
+};
 use sp_core::crypto::UncheckedFrom;
 
 /// Put the instrumented module in storage.
 ///
 /// Increments the refcount of the in-storage `prefab_module` if it already exists in storage
 /// under the specified `code_hash`.
-pub fn store<T: Config>(mut prefab_module: PrefabWasmModule<T>)
+pub fn store<T: Config>(
+	mut prefab_module: PrefabWasmModule<T>,
+	storage_meter: Option<&mut StorageMeter<T>>,
+) -> DispatchResult
 where
 	T::AccountId: UncheckedFrom<T::Hash> + AsRef<[u8]>,
 {
 	let code_hash = sp_std::mem::take(&mut prefab_module.code_hash);
 
-	// original_code is only `Some` if the contract was instantiated from a new code
-	// but `None` if it was loaded from storage.
-	if let Some(code) = prefab_module.original_code.take() {
-		<PristineCode<T>>::insert(&code_hash, code);
+	// We charge every instantiator as if it had uploaded the code. Otherwise we would
+	// generate a tragedy of the commons situation where only the original uploader needs
+	// to pay a deposit and is dependend on other users to terminate their contract to
+	// reclaim it.
+	//
+	// We estimate the size of the pristine code as the same size as the instrumented one
+	// in order to avoid accessing an additional storage item. This is always an overestimation.
+	if let Some(storage_meter) = storage_meter {
+		let bytes_added = prefab_module.encoded_size().saturating_add(prefab_module.code.len());
+		storage_meter.charge(&Diff {
+			bytes_added: bytes_added as u32,
+			items_added: 2,
+			..Default::default()
+		})?;
 	}
+
 	<CodeStorage<T>>::mutate(&code_hash, |existing| match existing {
 		Some(module) => increment_64(&mut module.refcount),
 		None => {
+			let orig_code = prefab_module.original_code.take().expect(
+				"
+					If an executable isn't in storage it was uploaded.
+					If it was uploaded the original code must exist. qed
+				",
+			);
 			*existing = Some(prefab_module);
+			<PristineCode<T>>::insert(&code_hash, orig_code);
 			Contracts::<T>::deposit_event(Event::CodeStored { code_hash })
 		},
 	});
+
+	Ok(())
 }
 
 /// Increment the refcount of a code in-storage by one.
@@ -99,7 +126,8 @@ where
 			module.refcount = module.refcount.saturating_sub(1);
 			if module.refcount == 0 {
 				*existing = None;
-				finish_removal::<T>(code_hash);
+				<PristineCode<T>>::remove(code_hash);
+				Contracts::<T>::deposit_event(Event::CodeRemoved { code_hash })
 			}
 		}
 	});
@@ -164,15 +192,6 @@ mod private {
 	}
 }
 
-/// Finish removal of a code by deleting the pristine code and emitting an event.
-fn finish_removal<T: Config>(code_hash: CodeHash<T>)
-where
-	T::AccountId: UncheckedFrom<T::Hash> + AsRef<[u8]>,
-{
-	<PristineCode<T>>::remove(code_hash);
-	Contracts::<T>::deposit_event(Event::CodeRemoved { code_hash })
-}
-
 /// Increment the refcount panicking if it should ever overflow (which will not happen).
 ///
 /// We try hard to be infallible here because otherwise more storage transactions would be
@@ -199,9 +218,14 @@ where
 	T::AccountId: UncheckedFrom<T::Hash> + AsRef<[u8]>,
 {
 	let key = <CodeStorage<T>>::hashed_key_for(code_hash);
-	let mut data = [0u8; 0];
-	let len = sp_io::storage::read(&key, &mut data, 0).ok_or_else(|| Error::<T>::CodeNotFound)?;
+	let len = stored_len(&key).ok_or_else(|| Error::<T>::CodeNotFound)?;
 	Ok(len)
+}
+
+/// Returns the encoded length of the storage item at the specified `key`.
+fn stored_len(key: &[u8]) -> Option<u32> {
+	let mut data = [0u8; 0];
+	sp_io::storage::read(key, &mut data, 0)
 }
 
 /// Costs for operations that are related to code handling.

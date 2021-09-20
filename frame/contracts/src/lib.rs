@@ -106,23 +106,23 @@ pub use crate::{
 use crate::{
 	exec::{AccountIdOf, ExecError, Executable, Stack as ExecStack},
 	gas::GasMeter,
-	storage::{ContractInfo, DeletedContract, Storage},
+	storage::{meter::Meter as StorageMeter, ContractInfo, DeletedContract, Storage},
 	wasm::PrefabWasmModule,
 	weights::WeightInfo,
 };
 use frame_support::{
 	dispatch::Dispatchable,
 	ensure,
-	traits::{Contains, Currency, Get, Randomness, StorageVersion, Time},
+	traits::{Contains, Currency, Get, Randomness, ReservableCurrency, StorageVersion, Time},
 	weights::{GetDispatchInfo, PostDispatchInfo, Weight},
 };
 use frame_system::Pallet as System;
 use pallet_contracts_primitives::{
 	Code, ContractAccessError, ContractExecResult, ContractInstantiateResult, ExecReturnValue,
-	GetStorageResult, InstantiateReturnValue,
+	GetStorageResult, InstantiateReturnValue, StorageDeposit,
 };
 use sp_core::{crypto::UncheckedFrom, Bytes};
-use sp_runtime::traits::{Convert, Hash, StaticLookup};
+use sp_runtime::traits::{Convert, Hash, Saturating, StaticLookup};
 use sp_std::prelude::*;
 
 type CodeHash<T> = <T as frame_system::Config>::Hash;
@@ -148,7 +148,7 @@ pub mod pallet {
 		type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
 
 		/// The currency in which fees are paid and contract balances are held.
-		type Currency: Currency<Self::AccountId>;
+		type Currency: ReservableCurrency<Self::AccountId>;
 
 		/// The overarching event type.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -209,6 +209,21 @@ pub mod pallet {
 		/// The maximum amount of weight that can be consumed per block for lazy trie removal.
 		#[pallet::constant]
 		type DeletionWeightLimit: Get<Weight>;
+
+		/// The amount of balance a caller has to pay for each byte of storage.
+		///
+		/// # Note
+		///
+		/// Changing this value for an existing chain might need a storage migration.
+		#[pallet::constant]
+		type DepositPerByte: Get<BalanceOf<Self>>;
+
+		/// The amount of balance a caller has to pay for each storage item.
+		/// # Note
+		///
+		/// Changing this value for an existing chain might need a storage migration.
+		#[pallet::constant]
+		type DepositPerItem: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -256,11 +271,13 @@ pub mod pallet {
 			dest: <T::Lookup as StaticLookup>::Source,
 			#[pallet::compact] value: BalanceOf<T>,
 			#[pallet::compact] gas_limit: Weight,
+			storage_limit: Option<BalanceOf<T>>,
 			data: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			let origin = ensure_signed(origin)?;
 			let dest = T::Lookup::lookup(dest)?;
-			let output = Self::internal_call(origin, dest, value, gas_limit, data, None);
+			let output =
+				Self::internal_call(origin, dest, value, gas_limit, storage_limit, data, None);
 			output.gas_meter.into_dispatch_result(output.result, T::WeightInfo::call())
 		}
 
@@ -297,6 +314,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			#[pallet::compact] endowment: BalanceOf<T>,
 			#[pallet::compact] gas_limit: Weight,
+			storage_limit: Option<BalanceOf<T>>,
 			code: Vec<u8>,
 			data: Vec<u8>,
 			salt: Vec<u8>,
@@ -308,6 +326,7 @@ pub mod pallet {
 				origin,
 				endowment,
 				gas_limit,
+				storage_limit,
 				Code::Upload(Bytes(code)),
 				data,
 				salt,
@@ -331,6 +350,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			#[pallet::compact] endowment: BalanceOf<T>,
 			#[pallet::compact] gas_limit: Weight,
+			storage_limit: Option<BalanceOf<T>>,
 			code_hash: CodeHash<T>,
 			data: Vec<u8>,
 			salt: Vec<u8>,
@@ -341,6 +361,7 @@ pub mod pallet {
 				origin,
 				endowment,
 				gas_limit,
+				storage_limit,
 				Code::Existing(code_hash),
 				data,
 				salt,
@@ -458,11 +479,6 @@ pub mod pallet {
 		/// The queue is filled by deleting contracts and emptied by a fixed amount each block.
 		/// Trying again during another block is the only way to resolve this issue.
 		DeletionQueueFull,
-		/// A storage modification exhausted the 32bit type that holds the storage size.
-		///
-		/// This can either happen when the accumulated storage in bytes is too large or
-		/// when number of storage items is too large.
-		StorageExhausted,
 		/// A contract with the same AccountId already exists.
 		DuplicateContract,
 		/// A contract self destructed in its constructor.
@@ -473,6 +489,10 @@ pub mod pallet {
 		DebugMessageInvalidUTF8,
 		/// A call tried to invoke a contract that is flagged as non-reentrant.
 		ReentranceDenied,
+		/// Origin doesn't have enough balance to pay for the storage limit.
+		StorageLimitTooHigh,
+		/// More storage was created than allowed by the storage limit.
+		StorageExhausted,
 	}
 
 	/// A mapping from an original code hash to the original code, untouched by instrumentation.
@@ -513,6 +533,8 @@ type InternalInstantiateOutput<T> = InternalOutput<T, (AccountIdOf<T>, ExecRetur
 struct InternalOutput<T: Config, O> {
 	/// The gas meter that was used to execute the call.
 	gas_meter: GasMeter<T>,
+	/// The storage deposit used by the call.
+	storage_deposit: StorageDeposit<BalanceOf<T>>,
 	/// The result of the call.
 	result: Result<O, ExecError>,
 }
@@ -538,16 +560,25 @@ where
 		dest: T::AccountId,
 		value: BalanceOf<T>,
 		gas_limit: Weight,
+		storage_limit: Option<BalanceOf<T>>,
 		data: Vec<u8>,
 		debug: bool,
-	) -> ContractExecResult {
+	) -> ContractExecResult<BalanceOf<T>> {
 		let mut debug_message = if debug { Some(Vec::new()) } else { None };
-		let output =
-			Self::internal_call(origin, dest, value, gas_limit, data, debug_message.as_mut());
+		let output = Self::internal_call(
+			origin,
+			dest,
+			value,
+			gas_limit,
+			storage_limit,
+			data,
+			debug_message.as_mut(),
+		);
 		ContractExecResult {
 			result: output.result.map_err(|r| r.error),
 			gas_consumed: output.gas_meter.gas_consumed(),
 			gas_required: output.gas_meter.gas_required(),
+			storage_deposit: output.storage_deposit,
 			debug_message: debug_message.unwrap_or_default(),
 		}
 	}
@@ -569,16 +600,18 @@ where
 		origin: T::AccountId,
 		endowment: BalanceOf<T>,
 		gas_limit: Weight,
+		storage_limit: Option<BalanceOf<T>>,
 		code: Code<CodeHash<T>>,
 		data: Vec<u8>,
 		salt: Vec<u8>,
 		debug: bool,
-	) -> ContractInstantiateResult<T::AccountId> {
+	) -> ContractInstantiateResult<T::AccountId, BalanceOf<T>> {
 		let mut debug_message = if debug { Some(Vec::new()) } else { None };
 		let output = Self::internal_instantiate(
 			origin,
 			endowment,
 			gas_limit,
+			storage_limit,
 			code,
 			data,
 			salt,
@@ -591,6 +624,7 @@ where
 				.map_err(|e| e.error),
 			gas_consumed: output.gas_meter.gas_consumed(),
 			gas_required: output.gas_meter.gas_required(),
+			storage_deposit: output.storage_deposit,
 			debug_message: debug_message.unwrap_or_default(),
 		}
 	}
@@ -652,21 +686,34 @@ where
 		dest: T::AccountId,
 		value: BalanceOf<T>,
 		gas_limit: Weight,
+		storage_limit: Option<BalanceOf<T>>,
 		data: Vec<u8>,
 		debug_message: Option<&mut Vec<u8>>,
 	) -> InternalCallOutput<T> {
+		let storage_limit =
+			storage_limit.unwrap_or_else(|| Self::max_storage_limit(&origin, value));
 		let mut gas_meter = GasMeter::new(gas_limit);
+		let mut storage_meter = match StorageMeter::new(origin.clone(), storage_limit) {
+			Ok(meter) => meter,
+			Err(err) =>
+				return InternalCallOutput {
+					result: Err(err.into()),
+					gas_meter,
+					storage_deposit: Default::default(),
+				},
+		};
 		let schedule = T::Schedule::get();
 		let result = ExecStack::<T, PrefabWasmModule<T>>::run_call(
 			origin,
 			dest,
 			&mut gas_meter,
+			&mut storage_meter,
 			&schedule,
 			value,
 			data,
 			debug_message,
 		);
-		InternalCallOutput { gas_meter, result }
+		InternalCallOutput { result, gas_meter, storage_deposit: storage_meter.total_deposit() }
 	}
 
 	/// Internal function that does the actual instantiation.
@@ -676,12 +723,24 @@ where
 		origin: T::AccountId,
 		endowment: BalanceOf<T>,
 		gas_limit: Weight,
+		storage_limit: Option<BalanceOf<T>>,
 		code: Code<CodeHash<T>>,
 		data: Vec<u8>,
 		salt: Vec<u8>,
 		debug_message: Option<&mut Vec<u8>>,
 	) -> InternalInstantiateOutput<T> {
+		let storage_limit =
+			storage_limit.unwrap_or_else(|| Self::max_storage_limit(&origin, endowment));
 		let mut gas_meter = GasMeter::new(gas_limit);
+		let mut storage_meter = match StorageMeter::new(origin.clone(), storage_limit) {
+			Ok(meter) => meter,
+			Err(err) =>
+				return InternalInstantiateOutput {
+					result: Err(err.into()),
+					gas_meter,
+					storage_deposit: Default::default(),
+				},
+		};
 		let schedule = T::Schedule::get();
 		let try_exec = || {
 			let executable = match code {
@@ -704,6 +763,7 @@ where
 				origin,
 				executable,
 				&mut gas_meter,
+				&mut storage_meter,
 				&schedule,
 				endowment,
 				data,
@@ -711,6 +771,17 @@ where
 				debug_message,
 			)
 		};
-		InternalInstantiateOutput { result: try_exec(), gas_meter }
+		InternalInstantiateOutput {
+			result: try_exec(),
+			gas_meter,
+			storage_deposit: storage_meter.total_deposit(),
+		}
+	}
+
+	/// If no storage limit is specified we use this function.
+	fn max_storage_limit(origin: &T::AccountId, value: BalanceOf<T>) -> BalanceOf<T> {
+		T::Currency::free_balance(origin)
+			.saturating_sub(T::Currency::minimum_balance())
+			.saturating_sub(value)
 	}
 }

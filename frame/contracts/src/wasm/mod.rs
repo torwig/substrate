@@ -132,7 +132,7 @@ where
 	) -> Result<(), DispatchError> {
 		let executable = prepare::benchmarking::prepare_contract(original_code, schedule)
 			.map_err::<DispatchError, _>(Into::into)?;
-		code_cache::store(executable);
+		code_cache::store(executable, None).expect("Can only fail when a storage meter is passed.");
 		Ok(())
 	}
 
@@ -199,16 +199,15 @@ where
 			imports.add_host_func(module, name, func_ptr);
 		});
 
-		let mut runtime = Runtime::new(ext, input_data, memory);
-
 		// We store before executing so that the code hash is available in the constructor.
 		let code = self.code.clone();
 		if let &ExportedFunction::Constructor = function {
-			code_cache::store(self)
+			code_cache::store(self, Some(ext.storage_meter()))?;
 		}
 
 		// Instantiate the instance from the instrumented module code and invoke the contract
 		// entrypoint.
+		let mut runtime = Runtime::new(ext, input_data, memory);
 		let result = sp_sandbox::Instance::new(&code, &imports, &mut runtime)
 			.and_then(|mut instance| instance.invoke(function.identifier(), &[], &mut runtime));
 
@@ -240,6 +239,7 @@ mod tests {
 			AccountIdOf, BlockNumberOf, ErrorOrigin, ExecError, Executable, Ext, SeedOf, StorageKey,
 		},
 		gas::GasMeter,
+		storage,
 		tests::{Call, Test, ALICE, BOB},
 		BalanceOf, CodeHash, Error, Pallet as Contracts,
 	};
@@ -410,6 +410,9 @@ mod tests {
 		fn gas_meter(&mut self) -> &mut GasMeter<Self::T> {
 			&mut self.gas_meter
 		}
+		fn storage_meter(&mut self) -> &mut storage::meter::NestedMeter<Self::T> {
+			unimplemented!()
+		}
 		fn append_debug_buffer(&mut self, msg: &str) -> bool {
 			self.debug_buffer.extend(msg.as_bytes());
 			true
@@ -426,6 +429,10 @@ mod tests {
 		) -> Result<[u8; 33], ()> {
 			self.ecdsa_recover.borrow_mut().push((signature.clone(), message_hash.clone()));
 			Ok([3; 33])
+		}
+
+		fn contract_info(&mut self) -> &mut crate::ContractInfo<Self::T> {
+			unimplemented!()
 		}
 	}
 
