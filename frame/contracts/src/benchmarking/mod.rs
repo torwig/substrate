@@ -221,8 +221,9 @@ benchmarks! {
 		let c in 0 .. T::Schedule::get().limits.code_len / 1024;
 		let WasmModule { code, hash, .. } = WasmModule::<T>::sized(c * 1024);
 		Contracts::<T>::store_code_raw(code)?;
-		let mut module = PrefabWasmModule::from_storage_noinstr(hash)?;
 		let schedule = T::Schedule::get();
+		let mut gas_meter = GasMeter::new(Weight::MAX);
+		let mut module = PrefabWasmModule::from_storage(hash, &schedule, &mut gas_meter)?;
 	}: {
 		Contracts::<T>::reinstrument_module(&mut module, &schedule)?;
 	}
@@ -232,8 +233,10 @@ benchmarks! {
 		let c in 0 .. T::Schedule::get().limits.code_len / 1024;
 		let WasmModule { code, hash, .. } = WasmModule::<T>::dummy_with_bytes(c * 1024);
 		Contracts::<T>::store_code_raw(code)?;
+		let schedule = T::Schedule::get();
+		let mut gas_meter = GasMeter::new(Weight::MAX);
 	}: {
-		<PrefabWasmModule<T>>::from_storage_noinstr(hash)?;
+		<PrefabWasmModule<T>>::from_storage(hash, &schedule, &mut gas_meter)?;
 	}
 
 	// The weight of changing the refcount of a contract's code per kilobyte.
@@ -243,7 +246,7 @@ benchmarks! {
 		Contracts::<T>::store_code_raw(code)?;
 		let mut gas_meter = GasMeter::new(Weight::MAX);
 	}: {
-		<PrefabWasmModule<T>>::add_user(hash, &mut gas_meter)?;
+		<PrefabWasmModule<T>>::remove_user(hash, &mut gas_meter)?;
 	}
 
 	// This constructs a contract that is maximal expensive to instrument.

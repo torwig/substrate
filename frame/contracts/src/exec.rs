@@ -237,33 +237,11 @@ pub trait Executable<T: Config>: Sized {
 		gas_meter: &mut GasMeter<T>,
 	) -> Result<Self, DispatchError>;
 
-	/// Load the module from storage without re-instrumenting it.
-	///
-	/// A code module is re-instrumented on-load when it was originally instrumented with
-	/// an older schedule. This skips this step for cases where the code storage is
-	/// queried for purposes other than execution.
-	///
-	/// # Note
-	///
-	/// Does not charge from the gas meter. Do not call in contexts where this is important.
-	fn from_storage_noinstr(code_hash: CodeHash<T>) -> Result<Self, DispatchError>;
-
-	/// Increment the refcount by one. Fails if the code does not exist on-chain.
-	///
-	/// Returns the size of the original code.
+	/// Decrement the refcount by one and remove the code when it drops to zero.
 	///
 	/// # Note
 	///
 	/// Charges weight proportional to the code size from the gas meter.
-	fn add_user(code_hash: CodeHash<T>, gas_meter: &mut GasMeter<T>) -> Result<(), DispatchError>;
-
-	/// Decrement the refcount by one and remove the code when it drops to zero.
-	///
-	/// Returns the size of the original code.
-	///
-	/// # Note
-	///
-	/// Charges weight proportional to the code size from the gas meter
 	fn remove_user(
 		code_hash: CodeHash<T>,
 		gas_meter: &mut GasMeter<T>,
@@ -1293,10 +1271,6 @@ mod tests {
 			_schedule: &Schedule<Test>,
 			_gas_meter: &mut GasMeter<Test>,
 		) -> Result<Self, DispatchError> {
-			Self::from_storage_noinstr(code_hash)
-		}
-
-		fn from_storage_noinstr(code_hash: CodeHash<Test>) -> Result<Self, DispatchError> {
 			LOADER.with(|loader| {
 				loader
 					.borrow_mut()
@@ -1305,14 +1279,6 @@ mod tests {
 					.cloned()
 					.ok_or(Error::<Test>::CodeNotFound.into())
 			})
-		}
-
-		fn add_user(
-			code_hash: CodeHash<Test>,
-			_: &mut GasMeter<Test>,
-		) -> Result<(), DispatchError> {
-			MockLoader::increment_refcount(code_hash);
-			Ok(())
 		}
 
 		fn remove_user(

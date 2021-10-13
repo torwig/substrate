@@ -22,7 +22,7 @@
 use crate::{
 	chain_extension::ChainExtension,
 	wasm::{env_def::ImportSatisfyCheck, PrefabWasmModule},
-	Config, Schedule,
+	AccountIdOf, Config, Schedule,
 };
 use pwasm_utils::parity_wasm::elements::{self, External, Internal, MemoryType, Type, ValueType};
 use sp_runtime::traits::Hash;
@@ -395,6 +395,7 @@ fn check_and_instrument<C: ImportSatisfyCheck, T: Config>(
 fn do_preparation<C: ImportSatisfyCheck, T: Config>(
 	original_code: Vec<u8>,
 	schedule: &Schedule<T>,
+	owner: Option<AccountIdOf<T>>,
 ) -> Result<PrefabWasmModule<T>, &'static str> {
 	let (code, (initial, maximum)) =
 		check_and_instrument::<C, T>(original_code.as_ref(), schedule)?;
@@ -405,9 +406,10 @@ fn do_preparation<C: ImportSatisfyCheck, T: Config>(
 		_reserved: None,
 		code,
 		original_code_len: original_code.len() as u32,
-		refcount: 1,
+		refcount: 0,
 		code_hash: T::Hashing::hash(&original_code),
 		original_code: Some(original_code),
+		owner,
 	})
 }
 
@@ -425,8 +427,9 @@ fn do_preparation<C: ImportSatisfyCheck, T: Config>(
 pub fn prepare_contract<T: Config>(
 	original_code: Vec<u8>,
 	schedule: &Schedule<T>,
+	owner: Option<AccountIdOf<T>>,
 ) -> Result<PrefabWasmModule<T>, &'static str> {
-	do_preparation::<super::runtime::Env, T>(original_code, schedule)
+	do_preparation::<super::runtime::Env, T>(original_code, schedule, owner)
 }
 
 /// The same as [`prepare_contract`] but without constructing a new [`PrefabWasmModule`]
@@ -471,9 +474,10 @@ pub mod benchmarking {
 			_reserved: None,
 			code: contract_module.into_wasm_code()?,
 			original_code_len: original_code.len() as u32,
-			refcount: 1,
+			refcount: 0,
 			code_hash: T::Hashing::hash(&original_code),
 			original_code: Some(original_code),
+			owner: None,
 		})
 	}
 }
@@ -526,7 +530,7 @@ mod tests {
 					},
 					.. Default::default()
 				};
-				let r = do_preparation::<env::Test, crate::tests::Test>(wasm, &schedule);
+				let r = do_preparation::<env::Test, crate::tests::Test>(wasm, &schedule, None);
 				assert_matches::assert_matches!(r, $($expected)*);
 			}
 		};

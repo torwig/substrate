@@ -31,10 +31,10 @@ use crate::{
 	exec::{ExecResult, Executable, ExportedFunction, Ext},
 	gas::GasMeter,
 	wasm::env_def::FunctionImplProvider,
-	CodeHash, Config, Schedule,
+	AccountIdOf, CodeHash, Config, Schedule,
 };
 use codec::{Decode, Encode};
-use frame_support::dispatch::DispatchError;
+use frame_support::dispatch::{DispatchError, DispatchResult};
 use sp_core::crypto::UncheckedFrom;
 use sp_std::prelude::*;
 #[cfg(test)]
@@ -62,9 +62,9 @@ pub struct PrefabWasmModule<T: Config> {
 	/// The maximum memory size of a contract's sandbox.
 	#[codec(compact)]
 	maximum: u32,
-	/// The number of contracts that use this as their contract code.
+	/// The number of contracts that use this as their code.
 	///
-	/// If this number drops to zero this module is removed from storage.
+	/// It is used to prevent removal of code that is in use.
 	#[codec(compact)]
 	refcount: u64,
 	/// This field is reserved for future evolution of format.
@@ -95,6 +95,11 @@ pub struct PrefabWasmModule<T: Config> {
 	/// when loading the module from storage.
 	#[codec(skip)]
 	code_hash: CodeHash<T>,
+	/// The account that has deployed the contract and hence is allowed to remove it.
+	///
+	/// If this is set to `None` everyone is allowed to remove the code. `None` exists to
+	/// be backwards compatible with existing contracts and for benchmarks/tests.
+	owner: Option<AccountIdOf<T>>,
 }
 
 impl ExportedFunction {
@@ -115,8 +120,21 @@ where
 	pub fn from_code(
 		original_code: Vec<u8>,
 		schedule: &Schedule<T>,
+		owner: Option<AccountIdOf<T>>,
 	) -> Result<Self, DispatchError> {
-		prepare::prepare_contract(original_code, schedule).map_err(Into::into)
+		prepare::prepare_contract(original_code, schedule, owner).map_err(Into::into)
+	}
+
+	/// Store the code without instantiating it.
+	pub fn store(self) -> DispatchResult {
+		code_cache::store(self, None, false)
+	}
+
+	/// Returns whether the supplied origin is the owner of the contract.
+	///
+	/// When no owner is set we allow removal by anyone.
+	pub fn is_owner(&self, origin: &AccountIdOf<T>) -> bool {
+		self.owner.as_ref().map(|owner| owner == origin).unwrap_or(true)
 	}
 
 	/// Create and store the module without checking nor instrumenting the passed code.
@@ -126,13 +144,11 @@ where
 	/// This is useful for benchmarking where we don't want instrumentation to skew
 	/// our results.
 	#[cfg(feature = "runtime-benchmarks")]
-	pub fn store_code_unchecked(
-		original_code: Vec<u8>,
-		schedule: &Schedule<T>,
-	) -> Result<(), DispatchError> {
+	pub fn store_code_unchecked(original_code: Vec<u8>, schedule: &Schedule<T>) -> DispatchResult {
 		let executable = prepare::benchmarking::prepare_contract(original_code, schedule)
 			.map_err::<DispatchError, _>(Into::into)?;
-		code_cache::store(executable, None).expect("Can only fail when a storage meter is passed.");
+		code_cache::store(executable, None, false)
+			.expect("Can only fail when a storage meter is passed.");
 		Ok(())
 	}
 
@@ -158,15 +174,7 @@ where
 		schedule: &Schedule<T>,
 		gas_meter: &mut GasMeter<T>,
 	) -> Result<Self, DispatchError> {
-		code_cache::load(code_hash, Some((schedule, gas_meter)))
-	}
-
-	fn from_storage_noinstr(code_hash: CodeHash<T>) -> Result<Self, DispatchError> {
-		code_cache::load(code_hash, None)
-	}
-
-	fn add_user(code_hash: CodeHash<T>, gas_meter: &mut GasMeter<T>) -> Result<(), DispatchError> {
-		code_cache::increment_refcount::<T>(code_hash, gas_meter)
+		code_cache::load(code_hash, schedule, gas_meter)
 	}
 
 	fn remove_user(
@@ -202,7 +210,7 @@ where
 		// We store before executing so that the code hash is available in the constructor.
 		let code = self.code.clone();
 		if let &ExportedFunction::Constructor = function {
-			code_cache::store(self, Some(ext.storage_meter()))?;
+			code_cache::store(self, Some(ext.storage_meter()), true)?;
 		}
 
 		// Instantiate the instance from the instrumented module code and invoke the contract
@@ -440,7 +448,7 @@ mod tests {
 		let wasm = wat::parse_str(wat).unwrap();
 		let schedule = crate::Schedule::default();
 		let executable =
-			PrefabWasmModule::<<MockExt as Ext>::T>::from_code(wasm, &schedule).unwrap();
+			PrefabWasmModule::<<MockExt as Ext>::T>::from_code(wasm, &schedule, None).unwrap();
 		executable.execute(ext.borrow_mut(), &ExportedFunction::Call, input_data)
 	}
 

@@ -122,7 +122,7 @@ use pallet_contracts_primitives::{
 	GetStorageResult, InstantiateReturnValue, StorageDeposit,
 };
 use sp_core::{crypto::UncheckedFrom, Bytes};
-use sp_runtime::traits::{Convert, Hash, Saturating, StaticLookup};
+use sp_runtime::traits::{BadOrigin, Convert, Hash, Saturating, StaticLookup};
 use sp_std::prelude::*;
 
 type CodeHash<T> = <T as frame_system::Config>::Hash;
@@ -372,6 +372,31 @@ pub mod pallet {
 				T::WeightInfo::instantiate(salt_len / 1024),
 			)
 		}
+
+		#[pallet::weight(0)]
+		pub fn upload_code(origin: OriginFor<T>, code: Vec<u8>) -> DispatchResult {
+			let origin = ensure_signed(origin)?;
+			let schedule = T::Schedule::get();
+			PrefabWasmModule::from_code(code, &schedule, Some(origin))?.store()
+		}
+
+		#[pallet::weight(0)]
+		pub fn remove_code(origin: OriginFor<T>, code_hash: CodeHash<T>) -> DispatchResult {
+			let origin = ensure_signed(origin)?;
+			<CodeStorage<T>>::try_mutate_exists(&code_hash, |existing| {
+				if let Some(module) = existing {
+					ensure!(module.is_owner(&origin), BadOrigin);
+					ensure!(module.refcount() == 0, <Error<T>>::CodeInUse);
+					*existing = None;
+					<PristineCode<T>>::remove(&code_hash);
+					Self::deposit_event(Event::CodeRemoved { code_hash });
+					// TODO: give back deposit.
+					Ok(())
+				} else {
+					Err(<Error<T>>::CodeNotFound.into())
+				}
+			})
+		}
 	}
 
 	#[pallet::event]
@@ -396,12 +421,6 @@ pub mod pallet {
 		/// Code with the specified hash has been stored.
 		CodeStored { code_hash: T::Hash },
 
-		/// Triggered when the current schedule is updated.
-		ScheduleUpdated {
-			/// The version of the newly set schedule.
-			version: u32,
-		},
-
 		/// A custom event emitted by the contract.
 		ContractEmitted {
 			/// The contract that emitted the event.
@@ -412,8 +431,6 @@ pub mod pallet {
 		},
 
 		/// A code with the specified hash was removed.
-		///
-		/// This happens when the last contract that uses this code hash was removed.
 		CodeRemoved { code_hash: T::Hash },
 	}
 
@@ -493,6 +510,8 @@ pub mod pallet {
 		StorageLimitTooHigh,
 		/// More storage was created than allowed by the storage limit.
 		StorageExhausted,
+		/// Code removal was denied because the code is still in use by at least one contract.
+		CodeInUse,
 	}
 
 	/// A mapping from an original code hash to the original code, untouched by instrumentation.
@@ -749,7 +768,8 @@ where
 						binary.len() as u32 <= schedule.limits.code_len,
 						<Error<T>>::CodeTooLarge
 					);
-					let executable = PrefabWasmModule::from_code(binary, &schedule)?;
+					let executable =
+						PrefabWasmModule::from_code(binary, &schedule, Some(origin.clone()))?;
 					ensure!(
 						executable.code_len() <= schedule.limits.code_len,
 						<Error<T>>::CodeTooLarge
