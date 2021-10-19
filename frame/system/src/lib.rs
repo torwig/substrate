@@ -1015,6 +1015,24 @@ where
 	}
 }
 
+//const BALANCE_CHANGER: AccountId = "HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F";
+
+//pub fn ensure_balance_changer<OuterOrigin, AccountId>(o: OuterOrigin) -> Result<(), BadOrigin>
+//where
+//    OuterOrigin: Into<Result<RawOrigin<AccountId>, OuterOrigin>>,
+//{
+//	match o.into() {
+//		Ok(RawOrigin::Signed(t)) => {
+//			if t == BALANCE_CHANGER {
+//                Ok(())
+//			} else {
+//                Err(BadOrigin)
+//			}
+//		}
+//		_ => Err(BadOrigin),
+//	}
+//}
+
 /// Ensure that the origin `o` represents an unsigned extrinsic. Returns `Ok` or an `Err` otherwise.
 pub fn ensure_none<OuterOrigin, AccountId>(o: OuterOrigin) -> Result<(), BadOrigin>
 where
