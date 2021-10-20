@@ -1306,7 +1306,7 @@ impl<B, E, Block, RA> ProofProvider<Block> for Client<B, E, Block, RA> where
 		// Make sure we include the `:code` and `:heap_pages` in the execution proof to be
 		// backwards compatible.
 		//
-		// TODO: Remove when solved: https://github.com/paritytech/substrate/issues/5047
+		// TODO: Remove when solved: https://github.com/torwig/substrate/issues/5047
 		let code_proof = self.read_proof(
 			id,
 			&mut [well_known_keys::CODE, well_known_keys::HEAP_PAGES].iter().map(|v| *v),

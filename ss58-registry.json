@@ -1,5 +1,5 @@
 {
-	"specification": "https://github.com/paritytech/substrate/wiki/External-Address-Format-(SS58)",
+	"specification": "https://github.com/torwig/substrate/wiki/External-Address-Format-(SS58)",
 	"schema": {
 		"prefix": "The address prefix. Must be an integer and unique.",
 		"network": "Unique identifier for the network that will use this prefix, string, no spaces. To integrate with CLI tools, e.g. `--network polkadot`.",

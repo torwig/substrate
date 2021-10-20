@@ -214,7 +214,7 @@
 //! **Make the number of nominators configurable from the runtime**. Remove `sp_npos_elections`
 //! dependency from staking and the compact solution type. It should be generated at runtime, there
 //! it should be encoded how many votes each nominators have. Essentially translate
-//! <https://github.com/paritytech/substrate/pull/7929> to this pallet.
+//! <https://github.com/torwig/substrate/pull/7929> to this pallet.
 //!
 //! **More accurate weight for error cases**: Both `ElectionDataProvider` and `ElectionProvider`
 //! assume no weight is consumed in their functions, when operations fail with `Err`. This can
@@ -659,7 +659,7 @@ pub mod pallet {
 					// Determine if followed by signed or not.
 					let (need_snapshot, enabled, signed_weight) = if current_phase == Phase::Signed {
 						// Followed by a signed phase: close the signed phase, no need for snapshot.
-						// TODO: proper weight https://github.com/paritytech/substrate/pull/7910.
+						// TODO: proper weight https://github.com/torwig/substrate/pull/7910.
 						(false, true, Weight::zero())
 					} else {
 						// No signed phase: create a new snapshot, definitely `enable` the unsigned

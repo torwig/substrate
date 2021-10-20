@@ -930,7 +930,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			Locks::<T, I>::remove(who);
 			if existed {
 				// TODO: use Locks::<T, I>::hashed_key
-				// https://github.com/paritytech/substrate/issues/4969
+				// https://github.com/torwig/substrate/issues/4969
 				system::Pallet::<T>::dec_consumers(who);
 			}
 		} else {

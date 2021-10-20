@@ -16,7 +16,7 @@
 // limitations under the License.
 
 //! WS RPC API for one off RPC calls to a substrate node.
-// TODO: Consolidate one off RPC calls https://github.com/paritytech/substrate/issues/8988
+// TODO: Consolidate one off RPC calls https://github.com/torwig/substrate/issues/8988
 
 use super::*;
 

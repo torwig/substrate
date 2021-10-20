@@ -293,7 +293,7 @@ impl<B: BlockT> BlockRequestHandler<B> {
 					// engine ID tag.
 					// The ID tag is hardcoded here to avoid depending on the GRANDPA crate, and will be
 					// removed once we remove the backwards compatibility.
-					// See: https://github.com/paritytech/substrate/issues/8172
+					// See: https://github.com/torwig/substrate/issues/8172
 					let justification =
 						justifications.and_then(|just| just.into_justification(*b"FRNK"));
 

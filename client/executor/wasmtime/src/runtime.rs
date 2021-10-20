@@ -418,7 +418,7 @@ fn instrument(blob: &mut RuntimeBlob, semantics: &Semantics) {
 	}
 
 	if semantics.stack_depth_metering {
-		// TODO: implement deterministic stack metering https://github.com/paritytech/substrate/issues/8393
+		// TODO: implement deterministic stack metering https://github.com/torwig/substrate/issues/8393
 	}
 }
 

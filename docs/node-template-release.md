@@ -1,7 +1,7 @@
 # Substrate Node Template Release Process
 
 1. This release process has to be run in a github checkout Substrate directory with your work
-committed into `https://github.com/paritytech/substrate/`, because the build script will check
+committed into `https://github.com/torwig/substrate/`, because the build script will check
 the existence of your current git commit ID in the remote repository.
 
 	Assume you are in root directory of Substrate. Run:

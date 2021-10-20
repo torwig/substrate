@@ -50,7 +50,7 @@ fn unavailable_yet<R: Default>(name: &str) -> R {
 	log::error!(
 		target: "sc_offchain",
 		"The {:?} API is not available for offchain workers yet. Follow \
-		https://github.com/paritytech/substrate/issues/1458 for details", name
+		https://github.com/torwig/substrate/issues/1458 for details", name
 	);
 	Default::default()
 }

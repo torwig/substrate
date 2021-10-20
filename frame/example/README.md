@@ -62,7 +62,7 @@ Copy and paste this template from frame/example/src/lib.rs into file
 // Inputs it uses and the source of each input.
 // Outputs it produces.
 
-<!-- Original author of paragraph: @Kianenigma in PR https://github.com/paritytech/substrate/pull/1951 -->
+<!-- Original author of paragraph: @Kianenigma in PR https://github.com/torwig/substrate/pull/1951 -->
 <!-- and comment https://github.com/paritytech/substrate-developer-hub/issues/44#issuecomment-471982710 -->
 
 \## Terminology
@@ -74,17 +74,17 @@ Copy and paste this template from frame/example/src/lib.rs into file
 // "free balance" and "reserved balance" should be noted to give context to the pallet.
 // Please do not link to outside resources. The reference docs should be the ultimate source of truth.
 
-<!-- Original author of heading: @Kianenigma in PR https://github.com/paritytech/substrate/pull/1951 -->
+<!-- Original author of heading: @Kianenigma in PR https://github.com/torwig/substrate/pull/1951 -->
 
 \## Goals
 
 // Add goals that the custom pallet is designed to achieve.
 
-<!-- Original author of heading: @Kianenigma in PR https://github.com/paritytech/substrate/pull/1951 -->
+<!-- Original author of heading: @Kianenigma in PR https://github.com/torwig/substrate/pull/1951 -->
 
 \### Scenarios
 
-<!-- Original author of paragraph: @Kianenigma. Based on PR https://github.com/paritytech/substrate/pull/1951 -->
+<!-- Original author of paragraph: @Kianenigma. Based on PR https://github.com/torwig/substrate/pull/1951 -->
 
 \#### <INSERT_SCENARIO_NAME>
 

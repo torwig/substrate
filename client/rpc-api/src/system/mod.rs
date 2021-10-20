@@ -81,8 +81,8 @@ pub trait SystemApi<Hash, Number> {
 	///
 	/// **Warning**: This API is not stable. Please do not programmatically interpret its output,
 	/// as its format might change at any time.
-	// TODO: the future of this call is uncertain: https://github.com/paritytech/substrate/issues/1890
-	// https://github.com/paritytech/substrate/issues/5541
+	// TODO: the future of this call is uncertain: https://github.com/torwig/substrate/issues/1890
+	// https://github.com/torwig/substrate/issues/5541
 	#[rpc(name = "system_unstable_networkState", returns = "jsonrpc_core::Value")]
 	fn system_network_state(&self)
 		-> Compat<BoxFuture<'static, jsonrpc_core::Result<jsonrpc_core::Value>>>;

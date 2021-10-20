@@ -6,7 +6,7 @@ description = "Substrate State Machine"
 edition = "2018"
 license = "Apache-2.0"
 homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/substrate/"
+repository = "https://github.com/torwig/substrate/"
 documentation = "https://docs.rs/sp-state-machine"
 readme = "README.md"
 

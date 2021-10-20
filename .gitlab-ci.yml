@@ -248,7 +248,7 @@ cargo-check-benches:
 node-bench-regression-guard:
   # it's not belong to `build` semantically, but dag jobs can't depend on each other
   # within the single stage - https://gitlab.com/gitlab-org/gitlab/-/issues/30632
-  # more: https://github.com/paritytech/substrate/pull/8519#discussion_r608012402
+  # more: https://github.com/torwig/substrate/pull/8519#discussion_r608012402
   stage:                           build
   <<:                              *docker-env
   <<:                              *test-refs-no-trigger-prs-only
@@ -379,7 +379,7 @@ check-web-wasm:
   <<:                              *test-refs
   script:
     # WASM support is in progress. As more and more crates support WASM, we
-    # should add entries here. See https://github.com/paritytech/substrate/issues/2416
+    # should add entries here. See https://github.com/torwig/substrate/issues/2416
     # Note: we don't need to test crates imported in `bin/node/cli`
     - time cargo build --manifest-path=client/consensus/aura/Cargo.toml --target=wasm32-unknown-unknown --features getrandom
     # Note: the command below is a bit weird because several Cargo issues prevent us from compiling the node in a more straight-forward way.

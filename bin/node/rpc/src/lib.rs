@@ -158,7 +158,7 @@ pub fn create_full<C, P, SC, B>(
 		SystemApi::to_delegate(FullSystem::new(client.clone(), pool, deny_unsafe))
 	);
 	// Making synchronous calls in light client freezes the browser currently,
-	// more context: https://github.com/paritytech/substrate/pull/3480
+	// more context: https://github.com/torwig/substrate/pull/3480
 	// These RPCs should use an asynchronous caller instead.
 	io.extend_with(
 		ContractsApi::to_delegate(Contracts::new(client.clone()))

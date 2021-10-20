@@ -98,7 +98,7 @@ pub struct ExecutionExtensions<Block: traits::Block> {
 	strategies: ExecutionStrategies,
 	keystore: Option<SyncCryptoStorePtr>,
 	offchain_db: Option<Box<dyn DbExternalitiesFactory>>,
-	// FIXME: these two are only RwLock because of https://github.com/paritytech/substrate/issues/4587
+	// FIXME: these two are only RwLock because of https://github.com/torwig/substrate/issues/4587
 	//        remove when fixed.
 	// To break retain cycle between `Client` and `TransactionPool` we require this
 	// extension to be a `Weak` reference.

@@ -6,7 +6,7 @@ name = "sc-peerset"
 version = "3.0.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
-repository = "https://github.com/paritytech/substrate/"
+repository = "https://github.com/torwig/substrate/"
 documentation = "https://docs.rs/sc-peerset"
 readme = "README.md"
 

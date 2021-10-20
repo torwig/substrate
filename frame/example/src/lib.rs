@@ -79,7 +79,7 @@
 //! // Inputs it uses and the source of each input.
 //! // Outputs it produces.
 //!
-//! <!-- Original author of paragraph: @Kianenigma in PR https://github.com/paritytech/substrate/pull/1951 -->
+//! <!-- Original author of paragraph: @Kianenigma in PR https://github.com/torwig/substrate/pull/1951 -->
 //! <!-- and comment https://github.com/paritytech/substrate-developer-hub/issues/44#issuecomment-471982710 -->
 //!
 //! \## Terminology
@@ -91,17 +91,17 @@
 //! // "free balance" and "reserved balance" should be noted to give context to the pallet.
 //! // Please do not link to outside resources. The reference docs should be the ultimate source of truth.
 //!
-//! <!-- Original author of heading: @Kianenigma in PR https://github.com/paritytech/substrate/pull/1951 -->
+//! <!-- Original author of heading: @Kianenigma in PR https://github.com/torwig/substrate/pull/1951 -->
 //!
 //! \## Goals
 //!
 //! // Add goals that the custom pallet is designed to achieve.
 //!
-//! <!-- Original author of heading: @Kianenigma in PR https://github.com/paritytech/substrate/pull/1951 -->
+//! <!-- Original author of heading: @Kianenigma in PR https://github.com/torwig/substrate/pull/1951 -->
 //!
 //! \### Scenarios
 //!
-//! <!-- Original author of paragraph: @Kianenigma. Based on PR https://github.com/paritytech/substrate/pull/1951 -->
+//! <!-- Original author of paragraph: @Kianenigma. Based on PR https://github.com/torwig/substrate/pull/1951 -->
 //!
 //! \#### <INSERT_SCENARIO_NAME>
 //!
@@ -666,7 +666,7 @@ impl<T: Config> Pallet<T> {
 // Note that a signed extension can also indicate that a particular data must be present in the
 // _signing payload_ of a transaction by providing an implementation for the `additional_signed`
 // method. This example will not cover this type of extension. See `CheckSpecVersion` in
-// [FRAME System](https://github.com/paritytech/substrate/tree/master/frame/system#signed-extensions)
+// [FRAME System](https://github.com/torwig/substrate/tree/master/frame/system#signed-extensions)
 // for an example.
 //
 // Using the extension, you can add some hooks to the life cycle of each transaction. Note that by

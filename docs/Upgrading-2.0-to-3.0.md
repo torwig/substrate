@@ -65,7 +65,7 @@ The same goes for all `<Self as frame_system::Trait>` and alike, which simply be
 #### SS58 Prefix is now a runtime param
 
 
-Since [#7810](https://github.com/paritytech/substrate/pull/7810) we don't define the ss58 prefix in the chainspec anymore but moved it into the runtime. Namely, `frame_system` now needs a new `SS58Prefix`, which in substrate node we have defined for ourselves as: `pub const SS58Prefix: u8 = 42;`. Use your own chain-specific value there.
+Since [#7810](https://github.com/torwig/substrate/pull/7810) we don't define the ss58 prefix in the chainspec anymore but moved it into the runtime. Namely, `frame_system` now needs a new `SS58Prefix`, which in substrate node we have defined for ourselves as: `pub const SS58Prefix: u8 = 42;`. Use your own chain-specific value there.
 
 #### Weight Definition
 
@@ -175,9 +175,9 @@ And update the overall definition for weights on frame and a few related types a
 ##### Assets
 
 The assets pallet has seen a variety of changes:
-- [Features needed for reserve-backed stablecoins #7152 ](https://github.com/paritytech/substrate/pull/7152)
-- [Freeze Assets and Asset Metadata #7346 ](https://github.com/paritytech/substrate/pull/7346)
-- [Introduces account existence providers reference counting #7363 ]((https://github.com/paritytech/substrate/pull/7363))
+- [Features needed for reserve-backed stablecoins #7152 ](https://github.com/torwig/substrate/pull/7152)
+- [Freeze Assets and Asset Metadata #7346 ](https://github.com/torwig/substrate/pull/7346)
+- [Introduces account existence providers reference counting #7363 ]((https://github.com/torwig/substrate/pull/7363))
 
 have all altered the feature set and changed the concepts. However, it has some of the best documentation and explains the current state very well. If you are using the assets pallet and need to upgrade from an earlier version, we recommend you use the current docs to guide your way!
 
@@ -240,7 +240,7 @@ impl pallet_tips::Config for Runtime {
 
 #### `FinalityTracker` removed
 
-Finality Tracker has been removed in favor of a different approach to handle the issue in GRANDPA, [see #7228 for details](https://github.com/paritytech/substrate/pull/7228). With latest GRANDPA this is not needed anymore and can be removed without worry.
+Finality Tracker has been removed in favor of a different approach to handle the issue in GRANDPA, [see #7228 for details](https://github.com/torwig/substrate/pull/7228). With latest GRANDPA this is not needed anymore and can be removed without worry.
 
 #### (changes) Elections Phragmen
 
@@ -276,7 +276,7 @@ The pallet has been moved to a new system in which the exact amount of deposit f
  	type TermDuration = TermDuration;
  ```
 
- **This upgrade requires storage [migration](https://github.com/paritytech/substrate/blob/master/frame/elections-phragmen/src/migrations_3_0_0.rs)**. Further details can be found in the [pallet-specific changelog](https://github.com/paritytech/substrate/blob/master/frame/elections-phragmen/CHANGELOG.md#security).
+ **This upgrade requires storage [migration](https://github.com/torwig/substrate/blob/master/frame/elections-phragmen/src/migrations_3_0_0.rs)**. Further details can be found in the [pallet-specific changelog](https://github.com/torwig/substrate/blob/master/frame/elections-phragmen/CHANGELOG.md#security).
 
 #### (changes) Democracy
 
@@ -320,10 +320,10 @@ The shared primitives define the API between Client and Runtime. Usually, you do
 
 A few minor things have changed in the `cli` (compared to 2.0.1):
 
-1. we've [replaced the newly added `BuildSyncSpec` subcommand with an RPC API](https://github.com/paritytech/substrate/commit/65cc9af9b8df8d36928f6144ee7474cefbd70454#diff-c57da6fbeff8c46ce15f55ea42fedaa5a4684d79578006ce4af01ae04fd6b8f8) in an on-going effort to make light-client-support smoother, see below
-2. we've [removed double accounts from our chainspec-builder](https://github.com/paritytech/substrate/commit/31499cd29ed30df932fb71b7459796f7160d0272)
-3. we [don't fallback to `--chain flaming-fir` anymore](https://github.com/paritytech/substrate/commit/13cdf1c8cd2ee62d411f82b64dc7eba860c9c6c6), if no chain is given our substrate-node will error.
-4. [the `subkey`-integration has seen a fix to the `insert`-command](https://github.com/paritytech/substrate/commit/54bde60cfd2c544c54e9e8623b6b8725b99557f8) that requires you to now add the `&cli` as a param.
+1. we've [replaced the newly added `BuildSyncSpec` subcommand with an RPC API](https://github.com/torwig/substrate/commit/65cc9af9b8df8d36928f6144ee7474cefbd70454#diff-c57da6fbeff8c46ce15f55ea42fedaa5a4684d79578006ce4af01ae04fd6b8f8) in an on-going effort to make light-client-support smoother, see below
+2. we've [removed double accounts from our chainspec-builder](https://github.com/torwig/substrate/commit/31499cd29ed30df932fb71b7459796f7160d0272)
+3. we [don't fallback to `--chain flaming-fir` anymore](https://github.com/torwig/substrate/commit/13cdf1c8cd2ee62d411f82b64dc7eba860c9c6c6), if no chain is given our substrate-node will error.
+4. [the `subkey`-integration has seen a fix to the `insert`-command](https://github.com/torwig/substrate/commit/54bde60cfd2c544c54e9e8623b6b8725b99557f8) that requires you to now add the `&cli` as a param.
     ```diff=
     --- a/bin/node/cli/src/command.rs
     +++ b/bin/node/cli/src/command.rs

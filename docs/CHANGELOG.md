@@ -21,7 +21,7 @@ Not too much has changed on the top and API level for developing Substrate betwe
 3. remove everything, copy over the 3.0 node-template
 4. try re-applying your diff, manually, a hunk at a time.
 
-If that doesn't work for you, we are working on an in-depth-guide for all major changes that took place and how you need to adapt your code for it. [You can find the upgrade guide under `docs/` in the repo](https://github.com/paritytech/substrate/blob/master/docs/Upgrading-2.0-to-3.0.md), if you have further questions or problem, please [feel free to ask in the github discussion board](https://github.com/paritytech/substrate/discussions).
+If that doesn't work for you, we are working on an in-depth-guide for all major changes that took place and how you need to adapt your code for it. [You can find the upgrade guide under `docs/` in the repo](https://github.com/torwig/substrate/blob/master/docs/Upgrading-2.0-to-3.0.md), if you have further questions or problem, please [feel free to ask in the github discussion board](https://github.com/torwig/substrate/discussions).
 
 
 Runtime
@@ -152,11 +152,11 @@ Runtime Migrations
 Patch release with backports to fix broken nightly builds.
 Namely contains backports of
 
-* [#7381: Make Substrate compile with latest nightly](https://github.com/paritytech/substrate/pull/7381)
-* [#7238: Fix compilation with environmental on latest nightly](https://github.com/paritytech/substrate/pull/7238)
-* [#7395: Make benchmarks compile with latest nightly](https://github.com/paritytech/substrate/pull/7395)
-* [#7838: Fix incorrect use of syn::exports](https://github.com/paritytech/substrate/pull/7838) (partially)
-* [#7854: Update to futures 0.3.9](https://github.com/paritytech/substrate/pull/7854)
+* [#7381: Make Substrate compile with latest nightly](https://github.com/torwig/substrate/pull/7381)
+* [#7238: Fix compilation with environmental on latest nightly](https://github.com/torwig/substrate/pull/7238)
+* [#7395: Make benchmarks compile with latest nightly](https://github.com/torwig/substrate/pull/7395)
+* [#7838: Fix incorrect use of syn::exports](https://github.com/torwig/substrate/pull/7838) (partially)
+* [#7854: Update to futures 0.3.9](https://github.com/torwig/substrate/pull/7854)
 
 
 ## 2.0.0-rc6 -> 2.0.0 – two dot 😮
@@ -397,7 +397,7 @@ Client
 ## 2.0.0-alpha.7 -> 2.0.0-alpha.8
 
 **License Changed**
-From this release forward, the code is released under a new – more relaxed – license scheme: Client (`sc-*`) is released under "GPL 3.0 or newer with the Classpath Exception", while primitives, FRAME, the pallets, utils and test-utils are released under "Apache 2.0". More details in the [Relax licensing scheme PR](https://github.com/paritytech/substrate/pull/5947).
+From this release forward, the code is released under a new – more relaxed – license scheme: Client (`sc-*`) is released under "GPL 3.0 or newer with the Classpath Exception", while primitives, FRAME, the pallets, utils and test-utils are released under "Apache 2.0". More details in the [Relax licensing scheme PR](https://github.com/torwig/substrate/pull/5947).
 
 Runtime
 -------

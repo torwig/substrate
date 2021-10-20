@@ -382,7 +382,7 @@ curl -H 'Content-Type: application/json' --data '{ "jsonrpc":"2.0", "method":"au
 
 If the Session keys need to match a fixed seed, they can be set individually key by key. The RPC call
 expects the key seed and the key type. The key types supported by default in Substrate are listed
-https://github.com/paritytech/substrate/blob/master/core/primitives/src/crypto.rs#L767[here], but the
+https://github.com/torwig/substrate/blob/master/core/primitives/src/crypto.rs#L767[here], but the
 user can declare any key type.
 
 ```
@@ -505,4 +505,4 @@ include::CODE_OF_CONDUCT.md[]
 
 == License
 
-https://github.com/paritytech/substrate/blob/master/LICENSE[LICENSE]
+https://github.com/torwig/substrate/blob/master/LICENSE[LICENSE]
