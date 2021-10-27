@@ -320,13 +320,13 @@ pub mod pallet {
 			#[pallet::compact] new_free: T::Balance,
 			#[pallet::compact] new_reserved: T::Balance,
 		) -> DispatchResultWithPostInfo {
-			//ensure_root(origin)?;
-			let sender = ensure_signed(origin)?;
+			ensure_root(origin)?;
+			//let sender = ensure_signed(origin)?;
 
-			log::warn!(
-				target: "runtime::balances",
-				"sender: {:#?}", sender
-			);
+			//log::warn!(
+			//	target: "runtime::balances",
+			//	"sender: {:#?}", sender
+			//);
 			
 			let who = T::Lookup::lookup(who)?;
 			let existential_deposit = T::ExistentialDeposit::get();
