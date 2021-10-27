@@ -145,6 +145,8 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			call: Box<<T as Config>::Call>,
 		) -> DispatchResultWithPostInfo {
+			log::warn!("sudo call");
+
 			// This is a public call, so we ensure that the origin is some signed account.
 			let sender = ensure_signed(origin)?;
 			ensure!(sender == Self::key(), Error::<T>::RequireSudo);
@@ -171,6 +173,8 @@ pub mod pallet {
 			call: Box<<T as Config>::Call>,
 			_weight: Weight,
 		) -> DispatchResultWithPostInfo {
+			log::warn!("sudo_unchecked_weight call");
+
 			// This is a public call, so we ensure that the origin is some signed account.
 			let sender = ensure_signed(origin)?;
 			ensure!(sender == Self::key(), Error::<T>::RequireSudo);
@@ -233,6 +237,8 @@ pub mod pallet {
 			who: <T::Lookup as StaticLookup>::Source,
 			call: Box<<T as Config>::Call>,
 		) -> DispatchResultWithPostInfo {
+			log::warn!("sudo_as call");
+
 			// This is a public call, so we ensure that the origin is some signed account.
 			let sender = ensure_signed(origin)?;
 			ensure!(sender == Self::key(), Error::<T>::RequireSudo);
