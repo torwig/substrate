@@ -151,6 +151,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 
             log::warn!("sender: {:#?}", sender);
+			log::warn!("sudo key: {:?}", Self::key());
 
 			ensure!(sender == Self::key(), Error::<T>::RequireSudo);
 
