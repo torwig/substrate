@@ -149,6 +149,9 @@ pub mod pallet {
 
 			// This is a public call, so we ensure that the origin is some signed account.
 			let sender = ensure_signed(origin)?;
+
+            log::warn!("sender: {:#?}", sender);
+
 			ensure!(sender == Self::key(), Error::<T>::RequireSudo);
 
 			let res = call.dispatch_bypass_filter(frame_system::RawOrigin::Root.into());
